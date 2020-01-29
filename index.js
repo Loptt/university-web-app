@@ -3,6 +3,7 @@ let morgan = require('morgan');
 let bodyParser = require('body-parser');
 let mongoose = require('mongoose');
 let jsonParser = bodyParser.json();
+let jwt = require('jsonwebtoken');
 
 let {DATABASE_URL, PORT} = require('./config');
 let { StudentList } = require('./model');
@@ -219,6 +220,37 @@ app.delete('/api/deleteStudent', jsonParser, (req, res) => {
         res.statusMessage = "Matricula no existe";
         res.status(404).json({});
     }
+});
+
+app.post('/api/login', jsonParser, (req, res) => {
+    let user = req.body.user;
+    let password = req.body.password;
+    // Validar el usuario en la BD antes de generar el token
+    let data = {
+        user, password
+    };
+
+    let token = jwt.sign(data, 'secret', {
+        expiresIn: 60 * 5
+    });
+
+    return res.status(200).json({token});
+
+});
+
+app.get('/api/validate', (req, res) => {
+    let token = req.headers.authorization;
+    token = token.replace('Bearer ', '');
+
+    jwt.verify(token, 'secret', (err, user) => {
+        if (err) {
+            res.statusMessage = "Token no valido";
+            return res.status(400).send();
+        }
+
+        console.log(user);
+        return res.status(200).json({message: "Exito"});
+    });
 });
 
 let server;
